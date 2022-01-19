@@ -2,12 +2,16 @@ const express = require("express");
 const router = express.Router(); // создаем страницу записной книжки
 const {Contact} = require("../../model");
 const {validationSchema} = require("../../validation");
+const {authenticate} = require("../../middlewares");
 
 
 // Получаем список контактов
-router.get("/", async (req, res, next) => {
+router.get("/", authenticate, async (req, res, next) => {
   try {
-    const allContacts = await Contact.find();
+    const {page = 1, limit} = req.query;
+    const skip = (page - 1) * limit;
+    const {_id} = req.user; 
+    const allContacts = await Contact.find({owner: _id}, '' , {skip, limit: +limit});
     res.json(allContacts);
   } catch (error) {
     next(error)   
@@ -36,14 +40,16 @@ router.get("/:id", async (req, res, next) => {
 
 // Добавление в список контактов
 
-router.post("/", async (req,res,next) => {
+router.post("/", authenticate, async (req,res,next) => {
+  // console.log("req.user", req.user);
   try {
     const {error} = validationSchema.validate(req.body);
     if(error){
       res.status(400).json({message: "missing required name field"});
       throw error;
     }
-    const newContact = await Contact.create(req.body)
+    const {_id} = req.user; 
+    const newContact = await Contact.create({...req.body, owner: _id});
     res.status(201).json(newContact);   // req.body показывает объект для записи 
   } catch (error) {
     if(error.message.includes("validation failed")){

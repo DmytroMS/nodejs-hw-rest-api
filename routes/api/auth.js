@@ -4,6 +4,7 @@ const {joiRegisterShema, joiLoginShema} = require("../../model/user");
 const {BadRequest, Conflict, Unauthorized} = require("http-errors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const gravatar = require("gravatar");
 
 
 const {SECRET_KEY} = process.env;
@@ -24,7 +25,9 @@ router.post('/signup', async(req, res, next) => {
         const salt = await bcrypt.genSalt(10);
         const hashPassword = await bcrypt.hash(password,salt);
 
-        const newUser = await User.create({email, password: hashPassword});
+        const avatarURL = gravatar.url(email);
+
+        const newUser = await User.create({email, password: hashPassword, avatarURL});
         res.status(201).json({
             user: {
                 email: newUser.email,
